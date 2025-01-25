@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lottie Editor</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.1/lottie.min.js"></script>
@@ -8,35 +10,42 @@
 </head>
 <body>
     <div class="container">
+        <h1>Lottie Editor</h1>
+        
         <!-- File Upload -->
-        <label class="upload-btn">
-            📤 Upload Lottie JSON
-            <input type="file" id="lottieUpload" accept=".json" hidden>
-        </label>
-
-        <!-- Animation Preview -->
-        <div id="animation-container"></div>
-
-        <!-- Text Editor -->
-        <div class="editor-box">
-            <h2>✏️ Edit Text</h2>
-            <select id="textLayerSelect">
-                <option value="-1">Select text layer...</option>
-            </select>
-            <input type="text" id="textInput" placeholder="New text">
-            <button onclick="updateText()">Update</button>
+        <div class="upload-section">
+            <label class="upload-btn">
+                📁 Upload Lottie JSON
+                <input type="file" id="lottieUpload" accept=".json" hidden>
+            </label>
         </div>
 
-        <!-- Color Editor -->
-        <div class="editor-box">
-            <h2>🎨 Edit Color</h2>
-            <input type="color" id="colorPicker">
-            <button onclick="updateColor()">Apply</button>
+        <!-- Animation Container -->
+        <div id="animation-container" class="animation-viewport"></div>
+
+        <!-- Editor Controls -->
+        <div class="editor-panel">
+            <div class="control-group">
+                <h3>📝 Text Layers</h3>
+                <select id="textLayerSelect">
+                    <option value="-1">Select Text Layer</option>
+                </select>
+                <div id="originalTextPreview" class="preview-text"></div>
+                <input type="text" id="textInput" placeholder="Enter new text">
+                <button onclick="updateText()">Update Text</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 Color</h3>
+                <input type="color" id="colorPicker" value="#ff0000">
+                <button onclick="updateColor()">Apply Color</button>
+            </div>
         </div>
 
-        <!-- Export -->
-        <button class="export-btn" onclick="exportMP4()">📥 Export MP4</button>
+        <!-- Export Section -->
+        <button class="export-btn" onclick="exportMP4()">📤 Export MP4</button>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
