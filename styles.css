@@ -1,32 +1,97 @@
-/* Add/Update These Styles */
-.animation-viewport {
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: #f0f2f5;
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.upload-btn {
+    display: inline-block;
+    background: #4CAF50;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.upload-btn:hover {
+    background: #45a049;
+}
+
+#animation-container {
     width: 100%;
-    min-height: 500px;
-    border: 2px solid #e0e0e0;
+    height: 500px;
+    margin: 2rem 0;
+    border: 2px dashed #ddd;
     border-radius: 8px;
     background: #f8f9fa;
-    position: relative;
-    overflow: visible !important;
 }
 
-.animation-placeholder {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+.editor-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.control-group {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+input[type="text"], input[type="color"] {
+    width: 100%;
+    padding: 0.8rem;
+    margin: 0.5rem 0;
+    border: 2px solid #2196F3;
+    border-radius: 6px;
+}
+
+button {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #1976D2;
+}
+
+.export-btn {
+    width: 100%;
+    padding: 1.2rem;
+    font-size: 1.1rem;
+    background: #9C27B0;
+}
+
+.export-btn:hover {
+    background: #7B1FA2;
+}
+
+#export-status {
+    margin-top: 1rem;
     color: #666;
-    font-style: italic;
-    pointer-events: none;
-}
-
-#animation-container svg {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 400px;
-}
-
-/* Error Message Styling */
-.error-message {
-    /* ... (keep previous error styles) ... */
-    white-space: pre-wrap;
+    min-height: 1.5rem;
 }
