@@ -1,180 +1,169 @@
-// script.js - Final Troubleshooting Version
 let animationInstance = null;
 let currentAnimationData = null;
 let textLayers = [];
 let isExporting = false;
 let originalPrompt = null;
 
-// Enhanced Error Handling
+// Error Handling
 function showError(message, error = null) {
-    console.error('Error Details:', { message, error });
+    console.error('Error:', message, error);
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
     errorDiv.innerHTML = `
-        <strong>${message}</strong><br>
-        ${error ? error.message : ''}
-        <div class="error-code">${error ? error.stack : ''}</div>
+        <strong>${message}</strong>
+        ${error ? `<br><small>${error.message}</small>` : ''}
     `;
     document.body.appendChild(errorDiv);
     setTimeout(() => errorDiv.remove(), 10000);
 }
 
-// Updated Export Function
+// File Upload Handler
+document.getElementById('lottieUpload').addEventListener('change', async (e) => {
+    try {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                // Validate JSON
+                const json = JSON.parse(event.target.result);
+                if (!json.v || !json.layers) {
+                    throw new Error("Invalid Lottie file format");
+                }
+
+                // Clear previous animation
+                if (animationInstance) {
+                    animationInstance.destroy();
+                    document.getElementById('animation-container').innerHTML = '';
+                }
+
+                // Initialize animation
+                animationInstance = lottie.loadAnimation({
+                    container: document.getElementById('animation-container'),
+                    renderer: 'svg',
+                    animationData: json,
+                    autoplay: true,
+                    loop: true
+                });
+
+                // Store data and detect text layers
+                currentAnimationData = json;
+                detectTextLayers();
+                populateLayerSelect();
+
+            } catch (error) {
+                showError('File load failed', error);
+            }
+        };
+        reader.readAsText(file);
+
+    } catch (error) {
+        showError('Upload failed', error);
+    }
+});
+
+// Text Layer Handling
+function detectTextLayers() {
+    textLayers = currentAnimationData.layers
+        .map((layer, index) => ({
+            index: index,
+            name: layer.nm || `Layer ${index + 1}`,
+            originalText: layer.t?.d?.k[0]?.s?.t || '',
+            path: `layers[${index}].t.d.k[0].s.t`
+        }))
+        .filter(layer => layer.originalText !== '');
+}
+
+function populateLayerSelect() {
+    const select = document.getElementById('textLayerSelect');
+    select.innerHTML = '<option value="-1">Select text layer</option>';
+    textLayers.forEach((layer, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = layer.name;
+        select.appendChild(option);
+    });
+}
+
+// Text Update
+function updateText() {
+    try {
+        const selectedIndex = parseInt(document.getElementById('textLayerSelect').value);
+        const newText = document.getElementById('textInput').value.trim();
+        
+        if (selectedIndex < 0) throw new Error('No layer selected');
+        if (!newText) throw new Error('Text cannot be empty');
+
+        const layer = textLayers[selectedIndex];
+        animationInstance.renderer.elements[layer.index].updateDocumentData({ t: newText });
+        currentAnimationData.layers[layer.index].t.d.k[0].s.t = newText;
+
+    } catch (error) {
+        showError('Text update failed', error);
+    }
+}
+
+// Color Update
+function updateColor() {
+    try {
+        const color = document.getElementById('colorPicker').value;
+        const rgb = hexToRgb(color);
+        
+        animationInstance.renderer.elements.forEach(element => {
+            if (element.fillColor) {
+                element.fillColor = rgb;
+            }
+        });
+    } catch (error) {
+        showError('Color update failed', error);
+    }
+}
+
+function hexToRgb(hex) {
+    return [
+        parseInt(hex.slice(1,3), 16)/255,
+        parseInt(hex.slice(3,5), 16)/255,
+        parseInt(hex.slice(5,7), 16)/255
+    ];
+}
+
+// Export Function
 async function exportMP4() {
-    if (isExporting) return;
+    if (isExporting || !animationInstance) return;
     isExporting = true;
-    originalPrompt = window.prompt; // Store original prompt function
-    
+    originalPrompt = window.prompt;
+    window.prompt = () => {};
+
     const exportBtn = document.querySelector('.export-btn');
     let ffmpeg = null;
 
     try {
-        // Initialization
-        window.prompt = () => {}; // Disable memory prompts
         exportBtn.disabled = true;
         exportBtn.textContent = 'Initializing...';
         
-        console.log('[EXPORT] Starting export process');
         const { createFFmpeg } = FFmpeg;
-        
-        // Updated FFmpeg Configuration
         ffmpeg = createFFmpeg({
             log: true,
-            corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
-            wasmPath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.wasm'
+            corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
         });
 
-        // Load FFmpeg with timeout
         exportBtn.textContent = 'Loading FFmpeg...';
-        await Promise.race([
-            ffmpeg.load(),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('FFmpeg load timeout')), 10000)
-            )
-        ]);
+        await ffmpeg.load();
 
-        // Setup Canvas
         const canvas = document.createElement('canvas');
-        canvas.width = 800;  // Reduced resolution for stability
+        canvas.width = 800;
         canvas.height = 450;
         const ctx = canvas.getContext('2d');
-        
-        // Frame Capture
-        const duration = Math.min(animationInstance.totalFrames / animationInstance.frameRate, 5);
-        const totalFrames = Math.floor(duration * 24); // 24 FPS for stability
-        exportBtn.textContent = `Preparing (0/${totalFrames})`;
 
-        console.log('[EXPORT] Starting frame capture');
+        const duration = Math.min(animationInstance.totalFrames / animationInstance.frameRate, 5);
+        const totalFrames = Math.floor(duration * 24);
+        exportBtn.textContent = `Capturing 0/${totalFrames}`;
+
         for (let i = 0; i < totalFrames; i++) {
             const frameTime = (i / totalFrames) * animationInstance.totalFrames;
             animationInstance.goToAndStop(frameTime, true);
             
-            // Rendering Safeguards
-            await new Promise(resolve => {
-                requestAnimationFrame(() => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(document.querySelector('svg'), 0, 0, canvas.width, canvas.height);
-                    resolve();
-                });
-            });
-            
-            // Frame Validation
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            if (imageData.data.every(channel => channel === 0)) {
-                throw new Error(`Blank frame at position ${i}`);
-            }
-
-            // Store Frame
-            const frameBlob = await new Promise(resolve => 
-                canvas.toBlob(resolve, 'image/png')
-            );
-            ffmpeg.FS('writeFile', `frame${i.toString().padStart(4, '0')}.png`,
-                new Uint8Array(await frameBlob.arrayBuffer()));
-
-            exportBtn.textContent = `Capturing (${i + 1}/${totalFrames})`;
-        }
-
-        // Video Encoding
-        exportBtn.textContent = 'Encoding...';
-        console.log('[EXPORT] Starting video encoding');
-        await ffmpeg.run(
-            '-framerate', '24',
-            '-i', 'frame%04d.png',
-            '-vf', 'scale=800:-2', // Maintain aspect ratio
-            '-c:v', 'libx264',
-            '-preset', 'fast',
-            '-crf', '23',
-            '-pix_fmt', 'yuv420p',
-            '-movflags', '+faststart',
-            'output.mp4'
-        );
-
-        // Final Validation
-        if (!ffmpeg.FS('readdir', '/').includes('output.mp4')) {
-            throw new Error('Encoding failed - no output file');
-        }
-
-        // Create Download
-        const videoData = ffmpeg.FS('readFile', 'output.mp4');
-        if (videoData.length < 1024) {
-            throw new Error('Output file too small (corrupted?)');
-        }
-
-        const videoUrl = URL.createObjectURL(new Blob([videoData.buffer], { type: 'video/mp4' }));
-        const downloadLink = document.createElement('a');
-        downloadLink.href = videoUrl;
-        downloadLink.download = `animation-${Date.now()}.mp4`;
-        downloadLink.click();
-        setTimeout(() => URL.revokeObjectURL(videoUrl), 5000);
-
-    } catch (error) {
-        showError('Export Failed', error);
-        console.error('Export Error Stack:', error.stack);
-        
-        // Alternative Export Method (WebM)
-        try {
-            console.log('[FALLBACK] Trying WebM export');
-            const stream = document.querySelector('svg').ownerSVGElement.captureStream(24);
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-            
-            recorder.ondataavailable = e => chunks.push(e.data);
-            recorder.start(100);
-            
-            await new Promise(resolve => 
-                setTimeout(resolve, duration * 1000)
-            );
-            
-            recorder.stop();
-            const webmBlob = new Blob(chunks, { type: 'video/webm' });
-            const webmUrl = URL.createObjectURL(webmBlob);
-            const webmLink = document.createElement('a');
-            webmLink.href = webmUrl;
-            webmLink.download = 'animation.webm';
-            webmLink.click();
-            
-        } catch (fallbackError) {
-            showError('Both Export Methods Failed', fallbackError);
-        }
-        
-    } finally {
-        // Cleanup
-        isExporting = false;
-        window.prompt = originalPrompt;
-        exportBtn.disabled = false;
-        exportBtn.textContent = '📤 Export MP4';
-        
-        if (ffmpeg) {
-            try {
-                ffmpeg.exit();
-                ffmpeg = null;
-            } catch (cleanupError) {
-                console.warn('Cleanup error:', cleanupError);
-            }
-        }
-        
-        console.log('[EXPORT] Process completed');
-    }
-}
-
-// ... (Rest of the code remains same as previous version with error handling improvements)
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(document
