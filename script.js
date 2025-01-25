@@ -1,58 +1,16 @@
-// Add These Updates
 let animationInstance = null;
+let currentAnimationData = null;
+const ffmpeg = new FFmpeg();
 
-// Enhanced Animation Loader
-function loadAnimation(json) {
-    try {
-        // Validate JSON structure
-        if (!json || typeof json !== 'object' || 
-            !json.v || !json.layers || !json.fr) {
-            throw new Error("Invalid Lottie JSON structure");
-        }
+// Initialize FFmpeg once
+(async function initFFmpeg() {
+    await ffmpeg.load({
+        coreURL: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
+        wasmURL: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.wasm'
+    });
+})();
 
-        // Clear previous
-        if (animationInstance) {
-            animationInstance.destroy();
-            document.querySelector('#animation-container svg')?.remove();
-        }
-
-        // Create container reference
-        const container = document.getElementById('animation-container');
-        if (!container) throw new Error("Animation container not found");
-        
-        // Initialize animation
-        animationInstance = lottie.loadAnimation({
-            container: container,
-            renderer: 'svg',
-            animationData: json,
-            autoplay: true,
-            loop: true
-        });
-
-        // Debugging events
-        animationInstance.addEventListener('DOMLoaded', () => {
-            console.log('SVG Elements loaded:', container.querySelector('svg'));
-            container.querySelector('.animation-placeholder').style.display = 'none';
-        });
-
-        animationInstance.addEventListener('data_failed', (err) => {
-            console.error('Data load failed:', err);
-            showError('Animation data corrupted', err);
-        });
-
-        // Force initial render
-        requestAnimationFrame(() => {
-            animationInstance.goToAndStop(0, true);
-            container.style.opacity = '1';
-        });
-
-    } catch (error) {
-        showError('Animation initialization failed', error);
-        document.querySelector('.animation-placeholder').style.display = 'block';
-    }
-}
-
-// Modified File Upload Handler
+// File Upload Handler
 document.getElementById('lottieUpload').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -60,25 +18,118 @@ document.getElementById('lottieUpload').addEventListener('change', function(e) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const json = JSON.parse(e.target.result);
-            loadAnimation(json);
+            currentAnimationData = JSON.parse(e.target.result);
+            loadAnimation(currentAnimationData);
+            document.getElementById('export-status').textContent = '';
         } catch (error) {
-            showError('Invalid JSON file', error);
+            showError('Invalid Lottie file');
         }
     };
-    reader.onerror = (error) => showError('File read failed', error);
     reader.readAsText(file);
 });
 
-// Add to Existing Code
-function showError(message, error = null) {
-    const errorText = error ? `${message}\n${error.message}\n${error.stack}` : message;
-    console.error(errorText);
+function loadAnimation(data) {
+    if (animationInstance) animationInstance.destroy();
     
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = errorText;
+    animationInstance = lottie.loadAnimation({
+        container: document.getElementById('animation-container'),
+        renderer: 'svg',
+        animationData: data,
+        autoplay: true,
+        loop: true
+    });
+}
+
+function updateText() {
+    const newText = document.getElementById('textInput').value;
+    animationInstance.renderer.elements.forEach(element => {
+        if (element.updateDocumentData) {
+            element.updateDocumentData({ t: newText });
+        }
+    });
+}
+
+function updateColor() {
+    const color = document.getElementById('colorPicker').value;
+    const rgb = [
+        parseInt(color.slice(1,3), 16)/255,
+        parseInt(color.slice(3,5), 16)/255,
+        parseInt(color.slice(5,7), 16)/255
+    ];
     
-    document.body.appendChild(errorDiv);
-    setTimeout(() => errorDiv.remove(), 10000);
+    animationInstance.renderer.elements.forEach(element => {
+        if (element.fillColor) {
+            element.fillColor = rgb;
+        }
+    });
+}
+
+// Fixed Export Function
+async function exportMP4() {
+    try {
+        const statusElement = document.getElementById('export-status');
+        statusElement.textContent = "Initializing export...";
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 800;
+        canvas.height = 600;
+
+        // Limit to 3 seconds of animation
+        const totalFrames = Math.min(animationInstance.totalFrames, 90);
+        const frameDuration = animationInstance.totalFrames / animationInstance.frameRate;
+        const exportDuration = Math.min(frameDuration, 3);
+
+        statusElement.textContent = `Exporting ${exportDuration}s video...`;
+
+        for (let i = 0; i < totalFrames; i++) {
+            animationInstance.goToAndStop(i, true);
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(document.querySelector('svg'), 0, 0, canvas.width, canvas.height);
+            
+            const frame = await new Promise(resolve => 
+                canvas.toBlob(resolve, 'image/png')
+            );
+            
+            await ffmpeg.writeFile(`frame${i.toString().padStart(4, '0')}.png`, 
+                new Uint8Array(await frame.arrayBuffer()));
+            
+            statusElement.textContent = `Processed ${i+1}/${totalFrames} frames`;
+        }
+
+        await ffmpeg.exec([
+            '-framerate', animationInstance.frameRate.toString(),
+            '-i', 'frame%04d.png',
+            '-c:v', 'libx264',
+            '-vf', 'format=yuv420p',
+            '-movflags', '+faststart',
+            'output.mp4'
+        ]);
+
+        const data = await ffmpeg.readFile('output.mp4');
+        const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `animation-${Date.now()}.mp4`;
+        a.click();
+        
+        statusElement.textContent = "Export completed successfully!";
+        setTimeout(() => statusElement.textContent = '', 5000);
+
+    } catch (error) {
+        showError(`Export failed: ${error.message}`);
+    }
+}
+
+function showError(message) {
+    const statusElement = document.getElementById('export-status');
+    statusElement.textContent = message;
+    statusElement.style.color = '#dc3545';
+    setTimeout(() => {
+        statusElement.textContent = '';
+        statusElement.style.color = '#666';
+    }, 5000);
 }
