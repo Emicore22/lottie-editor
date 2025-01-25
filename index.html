@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lottie Editor</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Lottie Web CDN with Fallback -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.1/lottie.min.js"
-            onerror="loadFallbackLottie()"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.1/lottie.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
 </head>
 <body>
@@ -15,35 +13,36 @@
         <h1>Lottie Editor</h1>
         
         <!-- File Upload -->
-        <div class="upload-section">
-            <label class="upload-btn">
-                📁 Upload Lottie JSON
-                <input type="file" id="lottieUpload" accept=".json" hidden>
-            </label>
-        </div>
+        <label class="upload-btn">
+            📁 Upload Lottie JSON
+            <input type="file" id="lottieUpload" accept=".json" hidden>
+        </label>
 
-        <!-- Animation Container -->
-        <div id="animation-container" class="animation-viewport">
-            <div class="animation-placeholder">Upload a Lottie file to begin</div>
-        </div>
+        <!-- Animation Display -->
+        <div id="animation-container"></div>
 
         <!-- Editor Controls -->
         <div class="editor-panel">
-            <!-- ... (keep existing editor controls) ... -->
+            <div class="control-group">
+                <h3>✏️ Text Editor</h3>
+                <input type="text" id="textInput" placeholder="Enter new text">
+                <button onclick="updateText()">Update Text</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🎨 Color Editor</h3>
+                <input type="color" id="colorPicker" value="#ff0000">
+                <button onclick="updateColor()">Apply Color</button>
+            </div>
         </div>
 
-        <button class="export-btn" onclick="exportMP4()">📤 Export MP4</button>
+        <!-- Export Section -->
+        <div class="export-section">
+            <button class="export-btn" onclick="exportMP4()">📤 Export MP4</button>
+            <div id="export-status"></div>
+        </div>
     </div>
 
-    <!-- Fallback Lottie Loader -->
-    <script>
-        function loadFallbackLottie() {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/lottie-web@5.9.1/build/player/lottie.min.js';
-            document.head.appendChild(script);
-        }
-    </script>
-    
     <script src="script.js"></script>
 </body>
 </html>
