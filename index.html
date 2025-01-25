@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lottie Editor</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.1/lottie.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- File Upload -->
+        <label class="upload-btn">
+            📤 Upload Lottie JSON
+            <input type="file" id="lottieUpload" accept=".json" hidden>
+        </label>
+
+        <!-- Animation Preview -->
+        <div id="animation-container"></div>
+
+        <!-- Text Editor -->
+        <div class="editor-box">
+            <h2>✏️ Edit Text</h2>
+            <select id="textLayerSelect">
+                <option value="-1">Select text layer...</option>
+            </select>
+            <input type="text" id="textInput" placeholder="New text">
+            <button onclick="updateText()">Update</button>
+        </div>
+
+        <!-- Color Editor -->
+        <div class="editor-box">
+            <h2>🎨 Edit Color</h2>
+            <input type="color" id="colorPicker">
+            <button onclick="updateColor()">Apply</button>
+        </div>
+
+        <!-- Export -->
+        <button class="export-btn" onclick="exportMP4()">📥 Export MP4</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
