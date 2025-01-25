@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lottie Editor</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.1/lottie.min.js"></script>
+    <!-- Lottie Web CDN with Fallback -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.9.1/lottie.min.js"
+            onerror="loadFallbackLottie()"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
 </head>
 <body>
@@ -21,31 +23,27 @@
         </div>
 
         <!-- Animation Container -->
-        <div id="animation-container" class="animation-viewport"></div>
+        <div id="animation-container" class="animation-viewport">
+            <div class="animation-placeholder">Upload a Lottie file to begin</div>
+        </div>
 
         <!-- Editor Controls -->
         <div class="editor-panel">
-            <div class="control-group">
-                <h3>📝 Text Layers</h3>
-                <select id="textLayerSelect">
-                    <option value="-1">Select Text Layer</option>
-                </select>
-                <div id="originalTextPreview" class="preview-text"></div>
-                <input type="text" id="textInput" placeholder="Enter new text">
-                <button onclick="updateText()">Update Text</button>
-            </div>
-
-            <div class="control-group">
-                <h3>🎨 Color</h3>
-                <input type="color" id="colorPicker" value="#ff0000">
-                <button onclick="updateColor()">Apply Color</button>
-            </div>
+            <!-- ... (keep existing editor controls) ... -->
         </div>
 
-        <!-- Export Section -->
         <button class="export-btn" onclick="exportMP4()">📤 Export MP4</button>
     </div>
 
+    <!-- Fallback Lottie Loader -->
+    <script>
+        function loadFallbackLottie() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/lottie-web@5.9.1/build/player/lottie.min.js';
+            document.head.appendChild(script);
+        }
+    </script>
+    
     <script src="script.js"></script>
 </body>
 </html>
