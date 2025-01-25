@@ -71,4 +71,15 @@ button:hover { background: #1976D2; }
     font-size: 1.1rem;
     background: #9C27B0;
 }
+
+.error-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #ff4444;
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    z-index: 1000;
+}
 .export-btn:hover { background: #7B1FA2; }
